@@ -2,6 +2,7 @@
 
 > **One-click stock screening + concise company summaries (FMP + GPT).**  
 > Screens a U.S. universe, fetches company profiles, and generates compact 1–3 line summaries per ticker in a clean card layout. Built to expand into an **agentic research assistant** with scoring, optimization, and backtesting.
+> https://huggingface.co/spaces/andrewnap211/agentic-ai-financial-analyst
 
 ---
 
