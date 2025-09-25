@@ -1,95 +1,105 @@
 # Agentic AI Financial Analyst — Streamlit App
 
-> **One-click stock screening + concise company summaries (FMP + GPT).**  
-> Screens a U.S. universe, fetches company profiles, and generates compact 1–3 line summaries per ticker in a clean card layout. Built to expand into an **agentic research assistant** with scoring, optimization, and backtesting.
-> https://huggingface.co/spaces/andrewnap211/agentic-ai-financial-analyst
+One‑click stock screening ➜ metrics filtering ➜ industry selection ➜ concise company profiles ➜ **agentic** earnings summaries & sentiment.  
+Built for expansion into a research assistant with scoring, portfolio optimization, and backtesting.
+
+> Live demo (example Space): https://huggingface.co/spaces/andrewnap211/agentic-ai-financial-analyst
 
 ---
 
-## ✨ Current Features (v0.1)
+## ✨ What’s New (since v0.1)
 
-- **Server-side screening (FMP):** Sector, market cap, volume, active trading; pagination + graceful retries.
-- **Profile fetch (FMP v3):** Company name, sector, industry, description.
-- **LLM summaries (OpenAI):** Up to **3 concise lines**, *no filler*, using only the FMP description.
-- **Card/grid UI (Streamlit):** Full text (no truncation), adjustable cards per row, CSV export.
-- **Caching:** `@st.cache_data` for screeners/profiles to reduce API calls.
+- **Multi‑page app**: new page `pages/02_Metrics_&_Performance.py` for cross‑ticker metric pulls and an *agentic* “Competitive Advantages” analysis prompt.
+- **Two‑step workflow**: earnings only run **after** you choose an **Industry** (prevents wasting LLM calls on the wrong universe).
+- **Range sliders** for **Market Cap** and **Average Volume** (min & max) in the screener.
+- **Agentic earnings summarizer**: user controls bullets/lines, count, focus/exclusions, and optional QoQ facts (Revenue, NI, FCF).
+- **State sharing across pages**: ticker universe from the main page is available on the Metrics page via `st.session_state`.
 
 ---
 
-## 🧭 Quick Demo Flow
+## 🚦 Current Features
 
-1. Choose **Sector**, **Min Market Cap**, **Min Volume**, **Max companies** in the sidebar.  
-2. Click **Run screen + summarize**.  
-3. Review screened tickers (table) and **summary cards** below.  
-4. Optionally edit the **prompt** to steer tone/detail.  
-5. **Download CSV** of ticker/name/summary.
+### Main page (`app.py`)
+- **Server‑side screening (FMP)**: sector + market‑cap/volume ranges, active trading, pagination, retries.
+- **Optional advanced filters**: valuation (PE/PS/PB), quality/leverage (D/E, Current), momentum (RSI, MA position), profitability (ROE/ROA/ROIC, margins), dividend yield.
+- **Industry gating**: after metrics, pick **Industry** ➜ then run profiles & earnings.
+- **Profiles (FMP v3)**: company, sector/industry, description.
+- **LLM profile summary (OpenAI)**: 1–3 short lines with no external facts.
+- **Agentic earnings**: transcript fetch (latest or Y/Q), custom instruction, bullets vs lines, include/exclude topics, optional QoQ box; JSON sentiment (overall + subscores + drivers).
+- **Card UI + CSV export**.
+
+### Metrics & Performance page (`pages/02_Metrics_&_Performance.py`)
+- **Pull metrics for the chosen universe** (or paste your own tickers).
+- **Agentic “Competitive Advantages” prompt**: GPT analyzes the current metrics table to narrate moat/edge themes (valuation, growth, margins, balance sheet, momentum).
 
 ---
 
 ## 🧱 Project Structure
 
 ```
-app.py                  # Streamlit UI + core logic (screener, profiles, summaries, cards)
-requirements.txt        # Python deps (Streamlit, requests, pandas, openai, urllib3)
-README.md               # You are here
+app.py                          # Main: Screener → Metrics → Industry → Profiles → Agentic Earnings/Sentiment
+pages/
+  └─ 02_Metrics_&_Performance.py # Secondary: metrics fetch + agentic competitive-advantages analysis
+requirements.txt
+README.md
 ```
+
+> Streamlit treats anything in `pages/` as a separate page. The numeric prefix controls menu order.
 
 ---
 
-## 🔌 Data & APIs
+## 🔌 Data & Models
 
 | Source | Purpose | Endpoints (examples) |
-| --- | --- | --- |
-| **Financial Modeling Prep (FMP)** | Screener + company profiles | `/stable/company-screener`, `/api/v3/profile/{ticker}` |
-| **OpenAI** | Summaries using description only | Chat Completions (`gpt-4o-mini` by default) |
+|---|---|---|
+| **Financial Modeling Prep (FMP)** | Screener + profiles + metrics | `/stable/company-screener`, `/api/v3/profile/{ticker}`, `/api/v3/ratios-ttm/{ticker}`, `/api/v3/key-metrics-ttm/{ticker}`, `/api/v3/earning_call_transcript/{ticker}` |
+| **OpenAI** | LLM summaries & agentic analysis | Chat Completions (`gpt-4o-mini` default) |
 
-> **Note:** The app instructs the model to use **only** the provided description (no outside facts).
+> The app strictly instructs the LLM to **use only provided text** for summaries; no outside facts.
 
 ---
 
 ## ⚙️ Configuration
 
-Set your keys via environment variables or HF **Repository Secrets**:
+Provide keys via environment variables (or HF Space Secrets):
 
 - `FMP_API_KEY`
 - `OPENAI_API_KEY`
-- (Optional) `OPENAI_MODEL` (defaults to `gpt-4o-mini`)
-
-**Tip:** In `app.py` you can allow Secrets to override hardcoded values:
-
-```python
-FMP_API_KEY    = os.getenv("FMP_API_KEY")    or FMP_API_KEY
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") or OPENAI_API_KEY
-```
+- Optional: `OPENAI_MODEL` (default: `gpt-4o-mini`)
 
 ---
 
 ## ▶️ Run Locally
 
 ```bash
-python -m venv .venv && source .venv/bin/activate   # (Windows: .venv\Scripts\activate)
+python -m venv .venv
+# Windows:
+.venv\\Scripts\\activate
+# macOS/Linux:
+# source .venv/bin/activate
+
 pip install -r requirements.txt
-export FMP_API_KEY=xxxx
-export OPENAI_API_KEY=sk-xxxx
+
+# Set keys (example)
+set FMP_API_KEY=your_fmp_key         # Windows PowerShell: $env:FMP_API_KEY="..."
+set OPENAI_API_KEY=sk-...
+
 streamlit run app.py
 ```
 
-Open the URL Streamlit prints (usually `http://localhost:8501`).
+Open the URL printed by Streamlit (usually http://localhost:8501).
 
 ---
 
 ## 🚀 Deploy to Hugging Face Spaces
 
-1. Create a **Streamlit** Space (name like `agentic-ai-financial-analyst`).  
-2. Upload:
-   - `app.py`
-   - `requirements.txt`
-3. In **Settings → Repository secrets**, add:
-   - `FMP_API_KEY`
-   - `OPENAI_API_KEY`
-4. The Space builds and serves the app automatically.
+1. Create a **Streamlit** Space.
+2. Upload: `app.py`, `pages/02_Metrics_&_Performance.py`, `requirements.txt`, `README.md`.
+3. In **Settings → Repository secrets**, add `FMP_API_KEY` and `OPENAI_API_KEY`.
+4. The build will run and serve automatically.
 
-**Sample `requirements.txt`:**
+Minimal `requirements.txt`:
+
 ```
 streamlit>=1.31
 pandas>=2.0
@@ -100,101 +110,76 @@ openai>=1.37.0
 
 ---
 
+## 🧭 Using the App
+
+### Main Page – two steps
+1. **Step 1 — Run screener + metrics**  
+   - Choose *Sector*, *Market Cap Range*, *Avg Volume Range*, and *Max companies*.
+   - (Optional) enable *Advanced Metrics* and set your ranges.
+   - Click **Step 1** to see the screened table and (optionally) metrics table.
+2. **Industry filter**  
+   - Pick an **Industry** (e.g., “Semiconductors”). The selection trims the universe.
+3. **Step 2 — Profiles + Earnings**  
+   - Choose transcript mode (Latest or Specific Y/Q) and write your instruction (e.g., “7 bullets on guidance, margins, demand; add QoQ”).  
+   - Click **Step 2** to render company cards with profiles, QoQ snapshot (if requested), LLM summary, and sentiment bars.  
+   - Download a CSV of the outputs.
+
+### Metrics & Performance Page
+- The page reads the current universe from `st.session_state.step1.filtered_tickers`.  
+- You can also paste a custom list of tickers.  
+- Click **Fetch metrics**.  
+- Use the **Agentic Competitive Advantages** box to ask narrative questions like:
+  - “Who looks advantaged on growth + margins while still reasonably valued?”  
+  - “Contrast cash generation and leverage risks for the top 5 by ROIC.”
+
+> This analysis works on the **metrics table currently in memory**; it won’t fetch new data unless you click **Fetch metrics** again.
+
+---
+
 ## 🧠 How It Works (high level)
 
-```mermaid
-flowchart LR
-  A[Sidebar Filters] --> B[Screen: FMP /stable/company-screener]
-  B --> C[Tickers]
-  C --> D[Profiles: FMP /api/v3/profile/&#123;ticker&#125;]
-  D --> E[Summarize: OpenAI Chat Completion]
-  E --> F[Streamlit Card/Grid UI]
-  F --> G[CSV Export]
-```
-
-1. **Screen** – `fmp_company_screener_safe()` calls FMP with retries + paging; normalizes `symbol → ticker`.  
-2. **Fetch profiles** – `fetch_profiles_v3_bulk()` requests `/api/v3/profile/{ticker}`; polite sleeps to avoid 429.  
-3. **Summarize** – `summarize_description()` sends description text to OpenAI with strict instructions (≤3 lines, no filler).  
-4. **Render** – Cards use HTML/CSS in `st.markdown(..., unsafe_allow_html=True)` to avoid truncation.
-
----
-
-## 🧩 Key Design Choices
-
-- **Graceful failure**: returns partial results; captures warnings/errors; avoids crashing on rate limits.  
-- **Deterministic-ish LLM**: low temperature; clear constraints reduce drift.  
-- **No hallucinations**: summaries must use **only** the profile description.  
-- **Token control**: descriptions are clipped (~4k chars) before sending to the model.
-
----
-
-## 🗺️ Roadmap → Agentic Analyst
-
-### Phase 1 — Metrics & Scoring
-- **Metrics pipeline:**  
-  - FMP: `ratios-ttm`, `income-statement` (annual), `cash-flow-statement`, `analyst-estimates`, `price-target-consensus`  
-  - yfinance: returns, annualized vol, VaR/CVaR  
-- **Derived features:** Fwd PS/PE, EPS Δ, 3Y CAGR (Rev/NI/OCF/FCF), margin expansion, risk metrics.  
-- **Weighted scoring:** Sidebar sliders → normalized score → ranked table + “Why this stock?” bullets tied to actual metrics.
-
-### Phase 2 — Portfolio & Backtest
-- **Optimizer:** mean-variance (max Sharpe, min var, target return), long-only + cap constraints.  
-- **Backtesting:** monthly/quarterly rebalance; equity curve vs SPY; CAGR, Sharpe, vol, max DD.  
-- **Exports:** CSV/JSON; optional PDF research brief.
-
-### Phase 3 — Agent Console (Tool Calling)
-- Expose tool functions: `screen()`, `profiles()`, `features()`, `score()`, `optimize()`, `backtest()`.  
-- GPT plans steps → calls tools → returns answer + **trace** (which tools, args, rows, timing).  
-- **Query examples:**  
-  - “Find US software peers with ≥15% FCF CAGR and ≤6x Fwd PS; propose a low-vol portfolio.”  
-  - “Rank mid-cap energy names by growth & valuation, cap any name at 10%, rebalance quarterly.”
-
-### Phase 4 — Production polish
-- Presets save/load, session persistence.  
-- Airflow (or HF cron) to precompute snapshots.  
-- Data provenance banners (freshness, source).  
-- Accessibility & performance tuning.
-
----
-
-## 🧪 Testing Ideas
-
-- Unit tests for: param sanitization, CAGR math (signed), normalization/scoring, optimizer constraints.  
-- Mock FMP/LLM to keep tests offline and fast.
-
----
-
-## 🔐 Security & Costs
-
-- Prefer **Secrets** over hardcoding keys—especially for public Spaces.  
-- Add caching to cut costs (LLM + FMP).  
-- This app is **not financial advice**; include a small disclaimer in the footer.
+- **Screener** → `fmp_company_screener_safe()` handles retries and pagination; normalizes symbols.
+- **Profiles** → `fetch_profiles_v3_bulk()` calls `profile/{ticker}` and clips description length for tokens.
+- **Metrics** → `fetch_all_metrics()` merges `profile`, `quote`, `ratios-ttm`, `key-metrics-ttm`, and `RSI`; computes relative price positions.
+- **Agentic Earnings** → `summarize_transcript()` shapes the output per user instruction; optional `fetch_qoq_fundamentals()` adds Revenue/NI/FCF QoQ; `analyze_sentiment_gpt()` returns a JSON blob (overall + subscores + drivers).
 
 ---
 
 ## ❓ Troubleshooting
 
-- **Blank page** → check **Runtime → Logs**; often a missing package or model/key issue.  
-- **429 from FMP** → already retried; try lower limits or slower cadence.  
-- **OpenAI auth error** → ensure `OPENAI_API_KEY` is set in Secrets or hardcoded for testing.  
-- **Text truncated** → use the **card layout** (already implemented); tables tend to truncate long cells.
+- **No industries listed after Step 1** → your screen returned zero tickers; loosen ranges or sector.
+- **Stale universe on Metrics page** → re‑run Step 1 on the main page; the page reads from `st.session_state`.
+- **FMP 429 or empty payload** → try reducing batch size or run again; the app already retries.
+- **OpenAI errors** → ensure `OPENAI_API_KEY` is set; summaries/sentiment gracefully fall back but will be generic.
+- **Broken layout** → make sure both `app.py` and `pages/02_Metrics_&_Performance.py` are present.
+
+---
+
+## 🔐 Security & Costs
+
+- Keep keys in **Secrets**, not in code.
+- Caching (`@st.cache_data`) reduces both API calls and LLM cost.
+- This tool is for research/education only — **not financial advice**.
+
+---
+
+## 🗺️ Roadmap
+
+- Metrics scoring & presets (growth, quality, value, momentum).
+- Portfolio optimizer and rolling backtests.
+- Export as PDF “Research Brief” with data citations.
+- Tool‑calling agent that plans and executes multi‑step analyses.
 
 ---
 
 ## 📄 License
 
-Choose a license that fits (e.g., MIT). Add `LICENSE` to the repo if you plan to share publicly.
+Choose a license that fits your usage (e.g., MIT). Add `LICENSE` to the repo if you plan to share publicly.
 
 ---
 
-## 🙌 Acknowledgments
+## 🙌 Thanks
 
-- [Financial Modeling Prep](https://financialmodelingprep.com/) for market data.  
-- [Streamlit](https://streamlit.io/) for rapid UI.  
-- [OpenAI](https://platform.openai.com/) for language models.
-
----
-
-## 📝 Changelog
-
-- **v0.1** — Initial MVP: Screener → Profiles → GPT summaries with card layout & CSV export.
+- Financial Modeling Prep — data APIs  
+- Streamlit — rapid UI framework  
+- OpenAI — language models
