@@ -5,6 +5,10 @@ A multi-page Streamlit application combining **financial data pipelines**, **mac
 > Demo Space: https://huggingface.co/spaces/andrewnap211/agentic-ai-financial-analyst  
 
 ---
+> Tutorial on How to Use the APP: https://www.youtube.com/watch?v=yeWEjTBer5Y&t=13st  
+
+---
+      
 
 ## 🚀 Overview
 
